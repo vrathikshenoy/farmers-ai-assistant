@@ -1,109 +1,93 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { MobileNav } from "@/components/mobile-nav"
-import { CameraCapture } from "@/components/camera-capture"
-import { CropSelector } from "@/components/crop-selector"
-import { ModeToggle } from "@/components/mode-toggle"
-import { useLanguage } from "@/components/language-provider"
-import { Loader2 } from "lucide-react"
-import type { AppMode } from "@/lib/types"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { MobileNav } from "@/components/mobile-nav";
+import { CameraCapture } from "@/components/camera-capture";
+import { CropSelector } from "@/components/crop-selector";
+import { ModeToggle } from "@/components/mode-toggle";
+import { useLanguage } from "@/components/language-provider";
+import { Loader2 } from "lucide-react";
+import type { AppMode } from "@/lib/types";
 
 export default function DiagnosePage() {
-  const [capturedImage, setCapturedImage] = useState<string | null>(null)
-  const [selectedCropId, setSelectedCropId] = useState<number | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [appMode, setAppMode] = useState<AppMode>("online")
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const router = useRouter()
-  const { t } = useLanguage()
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [selectedCropId, setSelectedCropId] = useState<number | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [appMode, setAppMode] = useState<AppMode>("online");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const router = useRouter();
+  const { t } = useLanguage();
 
   const handleCapture = (imageData: string) => {
-    setCapturedImage(imageData)
+    setCapturedImage(imageData);
     // Also store in session storage immediately in case we need it
     if (typeof window !== "undefined") {
-      sessionStorage.setItem("capturedImage", imageData)
+      sessionStorage.setItem("capturedImage", imageData);
     }
-  }
+  };
 
   const handleUpload = (file: File) => {
-    setUploadedFile(file)
-  }
+    setUploadedFile(file);
+  };
 
   const handleCropSelect = (cropId: number) => {
-    setSelectedCropId(cropId)
-  }
+    setSelectedCropId(cropId);
+  };
 
   const handleModeChange = (mode: AppMode) => {
-    setAppMode(mode)
-  }
+    setAppMode(mode);
+  };
 
   const analyzePlant = async () => {
-    if (!capturedImage || !selectedCropId) return
+    if (!capturedImage || !selectedCropId) return;
 
-    setIsAnalyzing(true)
+    setIsAnalyzing(true);
 
     try {
-      // For preview/demo purposes, we'll simulate the API call
-      // In a real app, we would call the actual API endpoint
-      const simulateApiCall = async () => {
-        // Wait for 1.5 seconds to simulate processing
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Determine which API endpoint to use based on the selected mode
+      const apiEndpoint =
+        appMode === "online" ? "/api/diagnose/online" : "/api/diagnose/offline";
 
-        // Create a mock result
-        return {
-          disease: {
-            id: 1,
-            name: "Leaf Rust",
-            crop_id: selectedCropId,
-            symptoms:
-              "Yellow-orange pustules on leaves, often in circular patterns. Leaves may turn yellow and fall prematurely.",
-            causes: "Fungal infection caused by Puccinia species. Spreads in warm, humid conditions.",
-            prevention: "Plant resistant varieties, ensure proper spacing for air circulation.",
-            organic_treatment: "Remove infected leaves; apply neem oil or sulfur-based fungicides.",
-            chemical_treatment: "Apply copper-based fungicides or systemic fungicides containing triazoles.",
-            image_url: null,
-          },
-          confidence: 0.87,
-          treatments: {
-            organic: [
-              "Remove and destroy infected plant parts",
-              "Apply neem oil spray (mix 2-3 ml per liter of water)",
-              "Use sulfur-based organic fungicides as directed",
-              "Apply compost tea as a preventative measure",
-            ],
-            chemical: [
-              "Apply copper oxychloride (2-3g per liter of water)",
-              "Use systemic fungicides containing tebuconazole",
-              "Alternate fungicides to prevent resistance",
-              "Apply as directed on product label, typically every 7-14 days",
-            ],
-          },
-        }
+      // Make the actual API call
+      const response = await fetch(apiEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image: capturedImage,
+          cropId: selectedCropId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
       }
 
-      // Simulate API call for preview purposes
-      const result = await simulateApiCall()
+      const result = await response.json();
 
       // Store result in session storage for the results page
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("diagnosisResult", JSON.stringify(result))
+        sessionStorage.setItem("diagnosisResult", JSON.stringify(result));
         // Ensure the image is stored
         if (capturedImage) {
-          sessionStorage.setItem("capturedImage", capturedImage)
+          sessionStorage.setItem("capturedImage", capturedImage);
         }
       }
 
-      router.push("/diagnose/results")
+      router.push("/diagnose/results");
     } catch (error) {
-      console.error("Error analyzing plant:", error)
+      console.error("Error analyzing plant:", error);
+      alert(
+        "Failed to analyze the plant image. Please try again or switch modes.",
+      );
     } finally {
-      setIsAnalyzing(false)
+      setIsAnalyzing(false);
     }
-  }
+  };
 
   return (
     <main className="flex min-h-screen flex-col pb-16">
@@ -132,7 +116,7 @@ export default function DiagnosePage() {
                   {t("loading")}
                 </>
               ) : (
-                "Analyze Plant"
+                `Analyze Plant (${appMode} mode)`
               )}
             </Button>
           </CardContent>
@@ -141,5 +125,5 @@ export default function DiagnosePage() {
 
       <MobileNav />
     </main>
-  )
+  );
 }
